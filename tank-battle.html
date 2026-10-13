@@ -4,231 +4,60 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>坦克大作战 · 1v1</title>
-  <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; min-height: 100%; background: #111827; font-family: system-ui, -apple-system, "Microsoft YaHei", sans-serif; }
-    body { display: grid; place-items: center; padding: 18px; }
-    .wrap { width: min(100%, 1080px); }
-    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #e5e7eb; margin-bottom: 10px; }
-    h1 { margin: 0; font-size: clamp(20px, 3vw, 30px); letter-spacing: .04em; }
-    .help { color: #a7b0c0; font-size: 13px; text-align: right; }
-    .game-shell { position: relative; overflow: hidden; border: 1px solid #364152; border-radius: 16px; background: #182231; box-shadow: 0 18px 50px #0007; }
-    canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #263445; cursor: crosshair; }
-    .hud { position: absolute; inset: 0 0 auto; display: flex; justify-content: space-between; gap: 12px; padding: 14px 16px; pointer-events: none; }
-    .panel { min-width: 220px; padding: 10px 12px; border: 1px solid #ffffff1c; border-radius: 12px; background: #101827c9; backdrop-filter: blur(5px); }
-    .panel.right { text-align: right; }
-    .label { font-size: 12px; color: #b5c0d0; margin-bottom: 5px; }
-    .bar { height: 10px; border-radius: 99px; overflow: hidden; background: #293447; }
-    .fill { height: 100%; width: 100%; transition: width .15s ease; }
-    .player-fill { background: linear-gradient(90deg, #35d08b, #84f0b9); }
-    .enemy-fill { background: linear-gradient(90deg, #ff6b6b, #ffad66); float: right; }
-    .status { margin-top: 6px; font-size: 12px; color: #d7deea; }
-    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; color: #b8c2d2; font-size: 13px; }
-    kbd { border: 1px solid #445168; border-bottom-width: 2px; border-radius: 5px; background: #202c40; color: #e7edf7; padding: 2px 6px; font-size: 12px; }
-    button { border: 0; border-radius: 9px; padding: 9px 14px; font-weight: 700; cursor: pointer; color: #fff; background: #287be8; }
-    button:hover { background: #3b8cf5; }
-    .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: #08101dcc; }
-    .overlay.hidden { display: none; }
-    .card { width: min(90%, 420px); padding: 28px; border: 1px solid #ffffff25; border-radius: 18px; background: #172235f2; text-align: center; box-shadow: 0 18px 55px #0008; }
-    .card h2 { margin: 0 0 10px; font-size: 30px; }
-    .card p { color: #bec8d8; line-height: 1.6; margin: 8px 0 20px; }
-    .legend { display: inline-flex; gap: 14px; margin-top: 4px; font-size: 12px; color: #aeb9ca; }
-    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
-    .dot.blue { background: #35a3ff; } .dot.red { background: #ff6868; }
-    @media (max-width: 650px) { body { padding: 8px; } .panel { min-width: 0; width: 45%; } .hud { padding: 8px; } .help { display: none; } }
-  </style>
+  <!-- 样式和游戏逻辑分开维护，上传时保持四个文件位于同一目录。 -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main class="wrap">
     <div class="topbar">
       <h1>坦克大作战 · 1v1</h1>
       <div class="help">摧毁红色坦克，成为战场赢家</div>
+      <button id="soundBtn" type="button" aria-pressed="true">声音：开</button>
     </div>
     <div class="game-shell">
-      <canvas id="game" width="960" height="540" aria-label="坦克大作战游戏画布"></canvas>
+      <!-- 固定逻辑地图尺寸，CSS 负责按窗口大小缩放显示。 -->
+      <canvas id="game" width="1920" height="1080" aria-label="坦克大作战游戏画布"></canvas>
       <div class="hud">
         <div class="panel">
           <div class="label">你的坦克 · 蓝方</div>
           <div class="bar"><div id="playerBar" class="fill player-fill"></div></div>
-          <div id="playerStatus" class="status">生命值 100 · 击毁 0</div>
+          <div id="playerStatus" class="status">生命值 200 / 200 · 击毁 0</div>
         </div>
         <div class="panel right">
           <div class="label">敌方坦克 · 红方</div>
           <div class="bar"><div id="enemyBar" class="fill enemy-fill"></div></div>
-          <div id="enemyStatus" class="status">生命值 100</div>
+          <div id="enemyStatus" class="status">生命值 200 / 200</div>
         </div>
       </div>
+      <!-- 初始显示开始界面；战斗结算时复用此区域。 -->
       <div id="overlay" class="overlay">
         <div class="card">
           <h2 id="resultTitle">坦克大作战</h2>
-          <p id="resultText">准备好后点击开始。用 WASD 移动，鼠标瞄准并射击，拾取战场上的增益道具。</p>
+          <p id="resultText">双方生命值 200。灰色钢墙不可破坏，棕色砖墙可以击碎。点击开始启用声音，用 WASD 移动，鼠标瞄准射击。</p>
+          <div class="setup">
+            <label for="difficulty">人机难度</label>
+            <select id="difficulty">
+              <option value="easy">简单</option>
+              <option value="normal" selected>普通</option>
+              <option value="hard">困难</option>
+            </select>
+            <p id="difficultyHint" class="setup-hint">会绕墙、破砖，尝试提前瞄准和躲避近处子弹。</p>
+            <label for="barrelLength">炮筒长度 <output id="barrelValue" for="barrelLength">30</output></label>
+            <input id="barrelLength" type="range" min="20" max="42" value="30" />
+          </div>
           <button id="restartBtn">开始游戏</button>
         </div>
       </div>
     </div>
     <div class="controls">
       <span><kbd>WASD</kbd> / <kbd>方向键</kbd> 移动</span>
-      <span>鼠标瞄准</span><span>按住鼠标左键或 <kbd>空格</kbd> 开火</span>
+      <span>鼠标控制独立炮塔，车身随移动转向</span><span>按住鼠标左键或 <kbd>空格</kbd> 开火</span>
+      <span>子弹可反弹 4 次（第 5 次碰墙消失）</span>
+      <span>地图 1920 × 1080 · 灰色钢墙：坚固 · 棕色砖墙：可破坏</span>
       <span class="legend"><span><i class="dot blue"></i>玩家</span><span><i class="dot red"></i>敌人</span><span>绿色 » 移速</span><span>黄色 ● 大子弹</span><span>紫色 ×3 三连发</span></span>
     </div>
   </main>
-
-  <script>
-    (() => {
-      const canvas = document.querySelector('#game');
-      const ctx = canvas.getContext('2d');
-      const W = canvas.width, H = canvas.height;
-      const playerBar = document.querySelector('#playerBar');
-      const enemyBar = document.querySelector('#enemyBar');
-      const playerStatus = document.querySelector('#playerStatus');
-      const enemyStatus = document.querySelector('#enemyStatus');
-      const overlay = document.querySelector('#overlay');
-      const resultTitle = document.querySelector('#resultTitle');
-      const resultText = document.querySelector('#resultText');
-      const restartBtn = document.querySelector('#restartBtn');
-      const keys = new Set();
-      const mouse = { x: W / 2, y: H / 2, down: false };
-      const TAU = Math.PI * 2;
-      let last = 0, gameOver = false, started = false, playerKills = 0, powerupTimer = 4;
-
-      const walls = [
-        { x: 255, y: 85, w: 150, h: 28 }, { x: 555, y: 85, w: 150, h: 28 },
-        { x: 255, y: 427, w: 150, h: 28 }, { x: 555, y: 427, w: 150, h: 28 },
-        { x: 165, y: 200, w: 28, h: 140 }, { x: 767, y: 200, w: 28, h: 140 },
-        { x: 427, y: 187, w: 106, h: 30 }, { x: 427, y: 323, w: 106, h: 30 }
-      ];
-
-      let player, enemy, bullets, sparks, powerups;
-
-      function tank(x, y, color, accent) {
-        return { x, y, r: 21, angle: 0, speed: 135, color, accent, hp: 100, maxHp: 100, cooldown: 0, hitFlash: 0, aiTimer: 0, strafe: 1, speedBoost: 0, bigBullets: 0, tripleShot: 0 };
-      }
-
-      function reset() {
-        player = tank(120, H / 2, '#2898ff', '#b8e4ff');
-        enemy = tank(W - 120, H / 2, '#ef5350', '#ffd0b2');
-        enemy.angle = Math.PI;
-        bullets = []; sparks = []; powerups = []; powerupTimer = 4; playerKills = 0; gameOver = false; started = false;
-        resultTitle.textContent = '坦克大作战'; resultText.textContent = '准备好后点击开始。用 WASD 移动，鼠标瞄准并射击，拾取战场上的增益道具。'; restartBtn.textContent = '开始游戏'; overlay.classList.remove('hidden');
-        updateHud();
-      }
-
-      function startGame() { started = true; gameOver = false; restartBtn.textContent = '再来一局'; overlay.classList.add('hidden'); last = performance.now(); }
-
-      function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-      function circleRectHit(cx, cy, r, rect) {
-        const x = clamp(cx, rect.x, rect.x + rect.w), y = clamp(cy, rect.y, rect.y + rect.h);
-        return Math.hypot(cx - x, cy - y) < r;
-      }
-      function blocked(x, y, r) {
-        return x - r < 8 || x + r > W - 8 || y - r < 8 || y + r > H - 8 || walls.some(w => circleRectHit(x, y, r, w));
-      }
-      function moveTank(t, dx, dy, dt) {
-        const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
-        const currentSpeed = t.speed * (t.speedBoost > 0 ? 1.65 : 1);
-        const nx = t.x + dx * currentSpeed * dt, ny = t.y + dy * currentSpeed * dt;
-        if (!blocked(nx, t.y, t.r)) t.x = nx;
-        if (!blocked(t.x, ny, t.r)) t.y = ny;
-      }
-      function aimAt(t, x, y) { t.angle = Math.atan2(y - t.y, x - t.x); }
-      function shoot(t, owner) {
-        if (t.cooldown > 0 || gameOver) return;
-        t.cooldown = owner === 'player' ? .42 : .95;
-        const muzzle = t.r + 17, count = owner === 'player' && t.tripleShot > 0 ? 3 : 1;
-        for (let i = 0; i < count; i++) {
-          const spread = count === 1 ? 0 : (i - 1) * .16, a = t.angle + spread, size = owner === 'player' && t.bigBullets > 0 ? 7 : 4;
-          bullets.push({ x: t.x + Math.cos(a) * muzzle, y: t.y + Math.sin(a) * muzzle, vx: Math.cos(a) * 330, vy: Math.sin(a) * 330, owner, life: 2.3, damage: owner === 'player' ? 18 : 12, r: size });
-        }
-      }
-      function addSparks(x, y, color, amount = 8) {
-        for (let i = 0; i < amount; i++) { const a = Math.random() * TAU, s = 40 + Math.random() * 150; sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: .35 + Math.random() * .3, color }); }
-      }
-      function bulletHitsWall(b) { return b.x < 8 || b.x > W - 8 || b.y < 8 || b.y > H - 8 || walls.some(w => b.x > w.x && b.x < w.x + w.w && b.y > w.y && b.y < w.y + w.h); }
-
-      function spawnPowerup() {
-        const types = ['speed', 'big', 'triple'];
-        for (let tries = 0; tries < 40; tries++) {
-          const x = 45 + Math.random() * (W - 90), y = 45 + Math.random() * (H - 90);
-          if (!blocked(x, y, 18) && Math.hypot(x - player.x, y - player.y) > 100 && Math.hypot(x - enemy.x, y - enemy.y) > 100) { powerups.push({ x, y, r: 15, type: types[Math.floor(Math.random() * types.length)], pulse: Math.random() * TAU }); return; }
-        }
-      }
-
-      function collectPowerups() {
-        for (let i = powerups.length - 1; i >= 0; i--) {
-          const p = powerups[i];
-          if (Math.hypot(player.x - p.x, player.y - p.y) < player.r + p.r) {
-            if (p.type === 'speed') player.speedBoost = 8;
-            if (p.type === 'big') player.bigBullets = 10;
-            if (p.type === 'triple') player.tripleShot = 10;
-            addSparks(p.x, p.y, powerupColor(p.type), 16); powerups.splice(i, 1);
-          }
-        }
-      }
-
-      function powerupColor(type) { return type === 'speed' ? '#72f1a8' : type === 'big' ? '#ffcf66' : '#d596ff'; }
-
-      function update(dt) {
-        if (!started || gameOver) return;
-        player.cooldown = Math.max(0, player.cooldown - dt); enemy.cooldown = Math.max(0, enemy.cooldown - dt);
-        player.hitFlash = Math.max(0, player.hitFlash - dt); enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
-        player.speedBoost = Math.max(0, player.speedBoost - dt); player.bigBullets = Math.max(0, player.bigBullets - dt); player.tripleShot = Math.max(0, player.tripleShot - dt);
-        powerupTimer -= dt; if (powerupTimer <= 0) { if (powerups.length < 2) spawnPowerup(); powerupTimer = 7 + Math.random() * 4; }
-        let dx = 0, dy = 0;
-        if (keys.has('w') || keys.has('arrowup')) dy -= 1; if (keys.has('s') || keys.has('arrowdown')) dy += 1;
-        if (keys.has('a') || keys.has('arrowleft')) dx -= 1; if (keys.has('d') || keys.has('arrowright')) dx += 1;
-        if (dx || dy) moveTank(player, dx, dy, dt);
-        aimAt(player, mouse.x, mouse.y); if (mouse.down || keys.has(' ')) shoot(player, 'player');
-
-        const ex = player.x - enemy.x, ey = player.y - enemy.y, dist = Math.hypot(ex, ey);
-        enemy.aiTimer -= dt; if (enemy.aiTimer <= 0) { enemy.aiTimer = .9 + Math.random() * 1.3; enemy.strafe = Math.random() < .5 ? -1 : 1; }
-        aimAt(enemy, player.x, player.y);
-        const toward = dist > 270 ? 1 : dist < 190 ? -1 : 0;
-        const ax = (ex / (dist || 1)) * toward - (ey / (dist || 1)) * enemy.strafe * .72;
-        const ay = (ey / (dist || 1)) * toward + (ex / (dist || 1)) * enemy.strafe * .72;
-        if (dist > 140) moveTank(enemy, ax, ay, dt); if (dist < 540 && Math.random() < dt * 1.35) shoot(enemy, 'enemy');
-
-        for (let i = bullets.length - 1; i >= 0; i--) {
-          const b = bullets[i]; b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-          let remove = b.life <= 0 || bulletHitsWall(b);
-          if (remove) { if (bulletHitsWall(b)) addSparks(b.x, b.y, '#e7cf8b', 4); bullets.splice(i, 1); continue; }
-          const target = b.owner === 'player' ? enemy : player;
-          if (Math.hypot(b.x - target.x, b.y - target.y) < target.r + b.r) {
-            target.hp = Math.max(0, target.hp - b.damage); target.hitFlash = .12; addSparks(b.x, b.y, target.accent, 11); bullets.splice(i, 1);
-            if (target.hp <= 0) { gameOver = true; if (target === enemy) playerKills++; showResult(target === enemy); }
-          }
-        }
-        collectPowerups();
-        for (let i = sparks.length - 1; i >= 0; i--) { const s = sparks[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.vx *= .96; s.vy *= .96; s.life -= dt; if (s.life <= 0) sparks.splice(i, 1); }
-        updateHud();
-      }
-
-      function drawTank(t) {
-        ctx.save(); ctx.translate(t.x, t.y); ctx.rotate(t.angle);
-        ctx.globalAlpha = t.hitFlash > 0 ? .55 : 1;
-        ctx.fillStyle = '#101827'; ctx.fillRect(-21, -18, 42, 36); ctx.fillStyle = t.color; ctx.fillRect(-17, -15, 34, 30);
-        ctx.fillStyle = t.accent; ctx.fillRect(1, -5, 29, 10); ctx.beginPath(); ctx.arc(0, 0, 11, 0, TAU); ctx.fillStyle = t.color; ctx.fill(); ctx.strokeStyle = t.accent; ctx.lineWidth = 3; ctx.stroke();
-        ctx.restore();
-      }
-      function draw() {
-        ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#29394a'; ctx.fillRect(0, 0, W, H);
-        ctx.strokeStyle = '#ffffff08'; ctx.lineWidth = 1; for (let x = 0; x <= W; x += 32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); } for (let y = 0; y <= H; y += 32) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-        walls.forEach(w => { ctx.fillStyle = '#536276'; ctx.fillRect(w.x, w.y, w.w, w.h); ctx.fillStyle = '#68788e'; ctx.fillRect(w.x + 3, w.y + 3, w.w - 6, 5); ctx.strokeStyle = '#1b2635'; ctx.strokeRect(w.x, w.y, w.w, w.h); });
-        powerups.forEach(p => { const pulse = Math.sin(performance.now() / 220 + p.pulse) * 2; ctx.save(); ctx.translate(p.x, p.y); ctx.fillStyle = powerupColor(p.type); ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(0, 0, p.r + pulse, 0, TAU); ctx.fill(); ctx.shadowBlur = 0; ctx.fillStyle = '#172235'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(p.type === 'speed' ? '»' : p.type === 'big' ? '●' : '×3', 0, 0); ctx.restore(); });
-        bullets.forEach(b => { ctx.fillStyle = b.owner === 'player' ? '#b8edff' : '#ffd0ae'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill(); });
-        drawTank(player); drawTank(enemy);
-        sparks.forEach(s => { ctx.globalAlpha = Math.max(0, s.life * 2); ctx.fillStyle = s.color; ctx.fillRect(s.x - 2, s.y - 2, 4, 4); }); ctx.globalAlpha = 1;
-      }
-      function updateHud() { playerBar.style.width = `${player.hp}%`; enemyBar.style.width = `${enemy.hp}%`; const buffs = []; if (player.speedBoost > 0) buffs.push(`移速 ${Math.ceil(player.speedBoost)}s`); if (player.bigBullets > 0) buffs.push(`大子弹 ${Math.ceil(player.bigBullets)}s`); if (player.tripleShot > 0) buffs.push(`三连发 ${Math.ceil(player.tripleShot)}s`); playerStatus.textContent = `生命值 ${player.hp} · 击毁 ${playerKills}${buffs.length ? ' · ' + buffs.join('、') : ''}`; enemyStatus.textContent = `生命值 ${enemy.hp}`; }
-      function showResult(win) { resultTitle.textContent = win ? '胜利！' : '战败'; resultText.textContent = win ? '你击毁了敌方坦克，战场属于你。' : '你的坦克被击毁了，再试一次吧。'; restartBtn.textContent = '再来一局'; overlay.classList.remove('hidden'); }
-      function pointerPosition(e) { const r = canvas.getBoundingClientRect(); mouse.x = (e.clientX - r.left) * W / r.width; mouse.y = (e.clientY - r.top) * H / r.height; }
-      window.addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) { keys.add(k); e.preventDefault(); } if (k === 'r' && gameOver) reset(); });
-      window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
-      canvas.addEventListener('pointermove', pointerPosition); canvas.addEventListener('pointerdown', e => { mouse.down = true; canvas.setPointerCapture(e.pointerId); pointerPosition(e); }); canvas.addEventListener('pointerup', () => mouse.down = false); canvas.addEventListener('pointerleave', () => mouse.down = false);
-      restartBtn.addEventListener('click', () => { if (!started) startGame(); else { reset(); startGame(); } });
-      function frame(now) { const dt = Math.min(.033, (now - last) / 1000 || 0); last = now; update(dt); draw(); requestAnimationFrame(frame); }
-      reset(); requestAnimationFrame(frame);
-    })();
-  </script>
+  <!-- 放在页面元素之后，保证脚本执行时能够找到画布和按钮。 -->
+  <script src="game.js"></script>
 </body>
 </html>

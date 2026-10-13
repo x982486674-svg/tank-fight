@@ -1,0 +1,42 @@
+/* 仅控制页面外观；坦克与子弹的数值在 game.js 的 SETTINGS 中调整。 */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: #111827; font-family: system-ui, -apple-system, "Microsoft YaHei", sans-serif; }
+body { display: grid; place-items: center; padding: 18px; }
+.wrap { width: min(100%, 1080px); }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #e5e7eb; margin-bottom: 10px; }
+h1 { margin: 0; font-size: clamp(20px, 3vw, 30px); letter-spacing: .04em; }
+.help { color: #a7b0c0; font-size: 13px; text-align: right; }
+#soundBtn { flex-shrink: 0; background: #26364b; border: 1px solid #445168; }
+#soundBtn[aria-pressed="false"] { color: #a7b0c0; }
+.game-shell { position: relative; overflow: hidden; border: 1px solid #364152; border-radius: 16px; background: #182231; box-shadow: 0 18px 50px #0007; }
+canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #263445; cursor: crosshair; }
+.hud { position: absolute; inset: 0 0 auto; display: flex; justify-content: space-between; gap: 12px; padding: 14px 16px; pointer-events: none; }
+.panel { min-width: 220px; padding: 10px 12px; border: 1px solid #ffffff1c; border-radius: 12px; background: #101827c9; backdrop-filter: blur(5px); }
+.panel.right { text-align: right; }
+.label { font-size: 12px; color: #b5c0d0; margin-bottom: 5px; }
+.bar { height: 10px; border-radius: 99px; overflow: hidden; background: #293447; }
+.fill { height: 100%; width: 100%; transition: width .15s ease; }
+.player-fill { background: linear-gradient(90deg, #35d08b, #84f0b9); }
+.enemy-fill { background: linear-gradient(90deg, #ff6b6b, #ffad66); float: right; }
+.status { margin-top: 6px; font-size: 12px; color: #d7deea; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; color: #b8c2d2; font-size: 13px; }
+kbd { border: 1px solid #445168; border-bottom-width: 2px; border-radius: 5px; background: #202c40; color: #e7edf7; padding: 2px 6px; font-size: 12px; }
+button { border: 0; border-radius: 9px; padding: 9px 14px; font-weight: 700; cursor: pointer; color: #fff; background: #287be8; }
+button:hover { background: #3b8cf5; }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: #08101dcc; }
+.overlay.hidden { display: none; }
+.card { width: min(90%, 420px); padding: 28px; border: 1px solid #ffffff25; border-radius: 18px; background: #172235f2; text-align: center; box-shadow: 0 18px 55px #0008; }
+.card h2 { margin: 0 0 10px; font-size: 30px; }
+.card p { color: #bec8d8; line-height: 1.6; margin: 8px 0 20px; }
+.setup { display: grid; gap: 8px; margin: 0 0 18px; text-align: left; }
+.setup label { font-size: 13px; color: #c6d5e8; }
+.setup select { width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #445168; background: #26364b; color: #fff; }
+.setup .setup-hint { font-size: 12px; margin: 0 0 4px; line-height: 1.5; }
+.setup input { width: 100%; accent-color: #35a3ff; }
+.setup output { float: right; color: #83c9ff; }
+.overlay { overflow: auto; padding: 12px; }
+.legend { display: inline-flex; flex-wrap: wrap; gap: 14px; margin-top: 4px; font-size: 12px; color: #aeb9ca; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; }
+.dot.blue { background: #35a3ff; } .dot.red { background: #ff6868; }
+@media (max-width: 650px) { body { padding: 8px; } .panel { min-width: 0; width: 45%; } .hud { padding: 8px; } .help { display: none; } }
